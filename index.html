@@ -121,12 +121,19 @@
 
   <script>
     const airportDB = {
+      // Existing test airports
       'JFK': { lat: 40.6413, lng: -73.7781, name: 'JFK' },
       'LHR': { lat: 51.4700, lng: -0.4543, name: 'LHR' },
       'DXB': { lat: 25.2532, lng: 55.3657, name: 'DXB' },
       'SFO': { lat: 37.6188, lng: -122.3758, name: 'SFO' },
       'SYD': { lat: -33.9399, lng: 151.1753, name: 'SYD' },
-      'HND': { lat: 35.5494, lng: 139.7798, name: 'HND' }
+      'HND': { lat: 35.5494, lng: 139.7798, name: 'HND' },
+      
+      // Newly added airports
+      'ROC': { lat: 43.1189, lng: -77.6724, name: 'ROC' }, // Rochester
+      'BWI': { lat: 39.1774, lng: -76.6684, name: 'BWI' }, // Baltimore
+      'SAN': { lat: 32.7338, lng: -117.1933, name: 'SAN' }, // San Diego
+      'TUS': { lat: 32.1161, lng: -110.9410, name: 'TUS' }  // Tucson
     };
 
     const sleep = ms => new Promise(r => setTimeout(r, ms));
