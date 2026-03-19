@@ -3,20 +3,44 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Travel Route 3D</title>
+  <title>Travel Route Cinematic</title>
   <style>
-    body {
-      margin: 0;
-      padding: 0;
-      overflow: hidden; /* Prevents scrollbars */
-      background-color: #000; /* Deep space background */
+    body { margin: 0; padding: 0; overflow: hidden; background-color: #000; font-family: sans-serif; }
+    #globeViz { width: 100vw; height: 100vh; }
+    
+    /* CSS for the dropping landmark animation */
+    .airport-marker {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      transform: scale(0); /* Start invisible */
+      animation: dropIn 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards; /* Bouncy drop */
     }
-    #globeViz {
-      width: 100vw;
-      height: 100vh;
+
+    .marker-label {
+      background: rgba(255, 255, 255, 0.9);
+      color: #000;
+      padding: 4px 8px;
+      border-radius: 4px;
+      font-weight: bold;
+      font-size: 14px;
+      margin-bottom: 5px;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.5);
+    }
+
+    .marker-dot {
+      width: 12px;
+      height: 12px;
+      background: #00ffcc; /* Cool neon cyan */
+      border-radius: 50%;
+      box-shadow: 0 0 15px #00ffcc;
+    }
+
+    @keyframes dropIn {
+      0% { transform: translateY(-30px) scale(0); opacity: 0; }
+      100% { transform: translateY(0) scale(1); opacity: 1; }
     }
   </style>
-  
   <script src="https://unpkg.com/three"></script>
   <script src="https://unpkg.com/globe.gl"></script>
 </head>
@@ -25,61 +49,94 @@
   <div id="globeViz"></div>
 
   <script>
-    // 1. Define the Airport Coordinates (The "Dots")
     const airports = [
       { lat: 40.6413, lng: -73.7781, name: 'JFK' },
       { lat: 51.4700, lng: -0.4543, name: 'LHR' },
       { lat: 25.2532, lng: 55.3657, name: 'DXB' }
     ];
 
-    // 2. Define the Flight Paths (The "Arcs")
-    const flightPaths = [
-      {
-        startLat: 40.6413, startLng: -73.7781, // JFK
-        endLat: 51.4700, endLng: -0.4543,      // LHR
-        color: ['#ff4b4b', '#ff4b4b']          // Red-ish gradient
-      },
-      {
-        startLat: 51.4700, startLng: -0.4543,  // LHR
-        endLat: 25.2532, endLng: 55.3657,      // DXB
-        color: ['#ff4b4b', '#ff4b4b']
-      }
-    ];
+    // Helper function to create pauses in our "script"
+    const sleep = ms => new Promise(r => setTimeout(r, ms));
 
-    // 3. Initialize and Configure the Globe
+    // Initialize blank globe
     const world = Globe()
       (document.getElementById('globeViz'))
-      .globeImageUrl('https://unpkg.com/three-globe/example/img/earth-dark.jpg') // Sleek dark mode earth
+      .globeImageUrl('https://unpkg.com/three-globe/example/img/earth-dark.jpg')
       .bumpImageUrl('https://unpkg.com/three-globe/example/img/earth-topology.png')
-      
-      // Add the airport points
-      .pointsData(airports)
-      .pointAltitude(0)
-      .pointColor(() => 'white')
-      .pointRadius(0.05)
-      
-      // Add the animated arcs
-      .arcsData(flightPaths)
-      .arcStartLat(d => d.startLat)
-      .arcStartLng(d => d.startLng)
-      .arcEndLat(d => d.endLat)
-      .arcEndLng(d => d.endLng)
-      .arcColor('color')
-      .arcDashLength(0.4) // Length of the moving particle
-      .arcDashGap(0.2)    // Gap between particles
-      .arcDashAnimateTime(2000) // Time (ms) it takes for a particle to travel the arc
-      .arcStroke(0.5);
+      .htmlElement(d => {
+        const el = document.createElement('div');
+        el.innerHTML = `
+          <div class="airport-marker">
+            <div class="marker-label">${d.name}</div>
+            <div class="marker-dot"></div>
+          </div>`;
+        return el;
+      })
+      .arcColor(() => '#00ffcc') // Match arc color to the neon cyan dot
+      .arcDashLength(0.4)
+      .arcDashGap(0.2)
+      .arcDashAnimateTime(1500)
+      .arcStroke(1);
 
-    // 4. Cinematic Camera Settings
-    // Auto-rotate the globe slowly for that Instagram Story vibe
-    world.controls().autoRotate = true;
-    world.controls().autoRotateSpeed = 1.0;
-    
-    // Disable zooming so the user doesn't accidentally mess up the framing while screen recording
-    world.controls().enableZoom = false; 
+    // Disable interactions so the sequence plays uninterrupted
+    world.controls().enableZoom = false;
+    world.controls().enableRotate = false;
 
-    // Point the camera roughly at the starting point (JFK) to begin
-    world.pointOfView({ lat: 30, lng: -30, altitude: 2.5 });
+    // --- THE CINEMATIC SEQUENCE ---
+    async function playSequence() {
+      const activeAirports = [];
+      const activePaths = [];
+
+      // 1. Setup: Point camera at the starting airport (JFK) from high up, then zoom in
+      world.pointOfView({ lat: airports[0].lat, lng: airports[0].lng, altitude: 4 }, 0);
+      await sleep(500); 
+      world.pointOfView({ lat: airports[0].lat, lng: airports[0].lng, altitude: 1.5 }, 2000);
+      await sleep(2000);
+
+      // 2. Drop the starting pin
+      activeAirports.push(airports[0]);
+      world.htmlElementsData([...activeAirports]);
+      await sleep(1000); // Wait for the drop animation
+
+      // 3. Draw first path & fly camera to Connection (LHR)
+      activePaths.push({
+        startLat: airports[0].lat, startLng: airports[0].lng,
+        endLat: airports[1].lat, endLng: airports[1].lng
+      });
+      world.arcsData([...activePaths]);
+      
+      world.pointOfView({ lat: airports[1].lat, lng: airports[1].lng, altitude: 1.5 }, 2500);
+      await sleep(2500);
+
+      // 4. Drop Connection pin
+      activeAirports.push(airports[1]);
+      world.htmlElementsData([...activeAirports]);
+      await sleep(1000);
+
+      // 5. Draw second path & fly camera to Destination (DXB)
+      activePaths.push({
+        startLat: airports[1].lat, startLng: airports[1].lng,
+        endLat: airports[2].lat, endLng: airports[2].lng
+      });
+      world.arcsData([...activePaths]);
+
+      world.pointOfView({ lat: airports[2].lat, lng: airports[2].lng, altitude: 1.5 }, 2500);
+      await sleep(2500);
+
+      // 6. Drop Destination pin
+      activeAirports.push(airports[2]);
+      world.htmlElementsData([...activeAirports]);
+      await sleep(1500);
+
+      // 7. Grand Finale: Zoom out slightly and start auto-rotating to show the full journey
+      world.controls().enableRotate = true; // Give user control back
+      world.pointOfView({ lat: airports[1].lat, lng: airports[1].lng, altitude: 2.2 }, 3000);
+      world.controls().autoRotate = true;
+      world.controls().autoRotateSpeed = 1.5;
+    }
+
+    // Start the movie once the globe data loads
+    setTimeout(playSequence, 1000); 
 
   </script>
 </body>
