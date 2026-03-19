@@ -229,7 +229,6 @@
 
     const sleep = ms => new Promise(r => setTimeout(r, ms));
 
-    // Dynamic camera altitude calculator
     function getDynamicAltitude(lat1, lon1, lat2, lon2) {
       const R = 6371; 
       const dLat = (lat2 - lat1) * Math.PI / 180;
@@ -243,7 +242,6 @@
       return Math.max(0.3, Math.min(1.5, alt + 0.2)); 
     }
 
-    // Initialize Globe
     const world = Globe()
       (document.getElementById('globeViz'))
       .globeImageUrl('https://unpkg.com/three-globe/example/img/earth-dark.jpg')
@@ -308,76 +306,91 @@
       uiPanel.classList.add('collapsed');
       toggleBtn.innerText = '✏️ Edit Route';
       activeSequenceId++;
-      world.arcsData([]);
-      world.htmlElementsData([]);
+      
+      // We no longer wipe the globe here, the loop inside playSequence handles it
       playSequence(routeAirports, activeSequenceId);
     });
 
-    // --- THE DYNAMIC CINEMATIC SEQUENCE ---
+    // --- THE DYNAMIC CINEMATIC SEQUENCE (Now Looping!) ---
     async function playSequence(route, seqId) {
       const isAlive = () => seqId === activeSequenceId;
 
-      world.controls().autoRotate = false;
-      const activeAirports = [];
-      const activePaths = [];
-
-      if (!isAlive()) return;
-      const startAir = route[0];
-      const setupLng = startAir.lng + 120; 
-      const setupLat = -startAir.lat;      
-      
-      world.pointOfView({ lat: setupLat, lng: setupLng, altitude: 4 }, 0);
-      await sleep(100); 
-
-      const initialAlt = getDynamicAltitude(startAir.lat, startAir.lng, route[1].lat, route[1].lng);
-
-      if (!isAlive()) return;
-      world.pointOfView({ lat: startAir.lat, lng: startAir.lng, altitude: initialAlt }, 3000);
-      await sleep(3000); 
-
-      if (!isAlive()) return;
-      activeAirports.push(startAir);
-      world.htmlElementsData([...activeAirports]);
-      await sleep(1000); 
-
-      for (let i = 0; i < route.length - 1; i++) {
-        if (!isAlive()) return;
-        const currentAir = route[i];
-        const nextAir = route[i+1];
-
-        const flightAlt = getDynamicAltitude(currentAir.lat, currentAir.lng, nextAir.lat, nextAir.lng);
-
-        let midLng = (currentAir.lng + nextAir.lng) / 2;
-        if (Math.abs(currentAir.lng - nextAir.lng) > 180) midLng += (midLng < 0) ? 180 : -180; 
-        const midLat = (currentAir.lat + nextAir.lat) / 2;
-
-        world.pointOfView({ lat: midLat, lng: midLng, altitude: flightAlt }, 1200);
-        await sleep(1200);
-
-        if (!isAlive()) return;
+      // Wrap the entire sequence in an infinite loop
+      while (isAlive()) {
+        world.controls().autoRotate = false;
         
-        activePaths.push({
-          startLat: currentAir.lat, startLng: currentAir.lng,
-          endLat: nextAir.lat, endLng: nextAir.lng
-        });
-        world.arcsData([...activePaths]);
+        // Wipe existing lines and markers at the start of every loop iteration
+        world.arcsData([]);
+        world.htmlElementsData([]);
         
-        world.pointOfView({ lat: nextAir.lat, lng: nextAir.lng, altitude: flightAlt }, 2000);
-        await sleep(2000);
+        const activeAirports = [];
+        const activePaths = [];
 
         if (!isAlive()) return;
-        activeAirports.push(nextAir);
+        const startAir = route[0];
+        const setupLng = startAir.lng + 120; 
+        const setupLat = -startAir.lat;      
+        
+        // Changed duration to 1500ms so it smoothly flies to the start position when looping
+        world.pointOfView({ lat: setupLat, lng: setupLng, altitude: 4 }, 1500);
+        await sleep(1500); 
+
+        const initialAlt = getDynamicAltitude(startAir.lat, startAir.lng, route[1].lat, route[1].lng);
+
+        if (!isAlive()) return;
+        world.pointOfView({ lat: startAir.lat, lng: startAir.lng, altitude: initialAlt }, 3000);
+        await sleep(3000); 
+
+        if (!isAlive()) return;
+        activeAirports.push(startAir);
         world.htmlElementsData([...activeAirports]);
-        await sleep(1500);
-      }
+        await sleep(1000); 
 
-      if (!isAlive()) return;
-      const finalAir = route[route.length - 1];
-      world.controls().enableRotate = true; 
-      const finaleAlt = Math.min(2.5, getDynamicAltitude(route[route.length - 2].lat, route[route.length - 2].lng, finalAir.lat, finalAir.lng) + 0.5);
-      world.pointOfView({ lat: finalAir.lat, lng: finalAir.lng, altitude: finaleAlt }, 3000);
-      world.controls().autoRotate = true;
-      world.controls().autoRotateSpeed = 0.8;
+        for (let i = 0; i < route.length - 1; i++) {
+          if (!isAlive()) return;
+          const currentAir = route[i];
+          const nextAir = route[i+1];
+
+          const flightAlt = getDynamicAltitude(currentAir.lat, currentAir.lng, nextAir.lat, nextAir.lng);
+
+          let midLng = (currentAir.lng + nextAir.lng) / 2;
+          if (Math.abs(currentAir.lng - nextAir.lng) > 180) midLng += (midLng < 0) ? 180 : -180; 
+          const midLat = (currentAir.lat + nextAir.lat) / 2;
+
+          world.pointOfView({ lat: midLat, lng: midLng, altitude: flightAlt }, 1200);
+          await sleep(1200);
+
+          if (!isAlive()) return;
+          
+          activePaths.push({
+            startLat: currentAir.lat, startLng: currentAir.lng,
+            endLat: nextAir.lat, endLng: nextAir.lng
+          });
+          world.arcsData([...activePaths]);
+          
+          world.pointOfView({ lat: nextAir.lat, lng: nextAir.lng, altitude: flightAlt }, 2000);
+          await sleep(2000);
+
+          if (!isAlive()) return;
+          activeAirports.push(nextAir);
+          world.htmlElementsData([...activeAirports]);
+          await sleep(1500);
+        }
+
+        if (!isAlive()) return;
+        
+        // --- FIXED GRAND FINALE ---
+        const finalAir = route[route.length - 1];
+        world.controls().enableRotate = true; 
+        
+        // Hardcode altitude back to 2.5 to always reveal the whole globe at the end
+        world.pointOfView({ lat: finalAir.lat, lng: finalAir.lng, altitude: 2.5 }, 3000);
+        world.controls().autoRotate = true;
+        world.controls().autoRotateSpeed = 0.8;
+
+        // Pause the loop for 6 seconds to let the user admire the completed route
+        await sleep(6000);
+      }
     }
 
   </script>
