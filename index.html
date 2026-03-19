@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Travel Route 3D</title>
+  <style>
+    body {
+      margin: 0;
+      padding: 0;
+      overflow: hidden; /* Prevents scrollbars */
+      background-color: #000; /* Deep space background */
+    }
+    #globeViz {
+      width: 100vw;
+      height: 100vh;
+    }
+  </style>
+  
+  <script src="https://unpkg.com/three"></script>
+  <script src="https://unpkg.com/globe.gl"></script>
+</head>
+<body>
+
+  <div id="globeViz"></div>
+
+  <script>
+    // 1. Define the Airport Coordinates (The "Dots")
+    const airports = [
+      { lat: 40.6413, lng: -73.7781, name: 'JFK' },
+      { lat: 51.4700, lng: -0.4543, name: 'LHR' },
+      { lat: 25.2532, lng: 55.3657, name: 'DXB' }
+    ];
+
+    // 2. Define the Flight Paths (The "Arcs")
+    const flightPaths = [
+      {
+        startLat: 40.6413, startLng: -73.7781, // JFK
+        endLat: 51.4700, endLng: -0.4543,      // LHR
+        color: ['#ff4b4b', '#ff4b4b']          // Red-ish gradient
+      },
+      {
+        startLat: 51.4700, startLng: -0.4543,  // LHR
+        endLat: 25.2532, endLng: 55.3657,      // DXB
+        color: ['#ff4b4b', '#ff4b4b']
+      }
+    ];
+
+    // 3. Initialize and Configure the Globe
+    const world = Globe()
+      (document.getElementById('globeViz'))
+      .globeImageUrl('https://unpkg.com/three-globe/example/img/earth-dark.jpg') // Sleek dark mode earth
+      .bumpImageUrl('https://unpkg.com/three-globe/example/img/earth-topology.png')
+      
+      // Add the airport points
+      .pointsData(airports)
+      .pointAltitude(0)
+      .pointColor(() => 'white')
+      .pointRadius(0.05)
+      
+      // Add the animated arcs
+      .arcsData(flightPaths)
+      .arcStartLat(d => d.startLat)
+      .arcStartLng(d => d.startLng)
+      .arcEndLat(d => d.endLat)
+      .arcEndLng(d => d.endLng)
+      .arcColor('color')
+      .arcDashLength(0.4) // Length of the moving particle
+      .arcDashGap(0.2)    // Gap between particles
+      .arcDashAnimateTime(2000) // Time (ms) it takes for a particle to travel the arc
+      .arcStroke(0.5);
+
+    // 4. Cinematic Camera Settings
+    // Auto-rotate the globe slowly for that Instagram Story vibe
+    world.controls().autoRotate = true;
+    world.controls().autoRotateSpeed = 1.0;
+    
+    // Disable zooming so the user doesn't accidentally mess up the framing while screen recording
+    world.controls().enableZoom = false; 
+
+    // Point the camera roughly at the starting point (JFK) to begin
+    world.pointOfView({ lat: 30, lng: -30, altitude: 2.5 });
+
+  </script>
+</body>
+</html>
