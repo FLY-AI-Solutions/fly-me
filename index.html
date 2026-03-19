@@ -5,93 +5,146 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Travel Route Cinematic</title>
   <style>
-    body { margin: 0; padding: 0; overflow: hidden; background-color: #000; font-family: sans-serif; }
-    #globeViz { width: 100vw; height: 100vh; }
+    body { margin: 0; padding: 0; overflow: hidden; background-color: #000; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+    #globeViz { width: 100vw; height: 100vh; position: absolute; top: 0; left: 0; z-index: 1; }
     
-    /* CSS for the dropping landmark animation */
+    /* --- FROSTED GLASS UI --- */
+    #ui-panel {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      z-index: 10;
+      background: rgba(20, 20, 20, 0.4);
+      backdrop-filter: blur(15px);
+      -webkit-backdrop-filter: blur(15px);
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      border-radius: 20px;
+      padding: 30px;
+      width: 320px;
+      color: white;
+      box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.5);
+      transition: opacity 0.5s ease, transform 0.5s ease;
+    }
+
+    #ui-panel h2 {
+      margin-top: 0;
+      text-align: center;
+      font-weight: 600;
+      letter-spacing: 1px;
+    }
+
+    .input-group {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      margin-bottom: 15px;
+    }
+
+    input {
+      background: rgba(255, 255, 255, 0.1);
+      border: 1px solid rgba(255, 255, 255, 0.3);
+      padding: 12px;
+      border-radius: 8px;
+      color: white;
+      font-size: 16px;
+      outline: none;
+      text-transform: uppercase;
+    }
+    
+    input::placeholder { color: rgba(255, 255, 255, 0.5); text-transform: none; }
+    input:focus { border-color: #00ffcc; }
+
+    .btn-row {
+      display: flex;
+      gap: 10px;
+    }
+
+    button {
+      flex: 1;
+      padding: 12px;
+      border: none;
+      border-radius: 8px;
+      font-size: 16px;
+      font-weight: bold;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+
+    #add-btn { background: rgba(255, 255, 255, 0.2); color: white; }
+    #add-btn:hover { background: rgba(255, 255, 255, 0.3); }
+
+    #go-btn { background: #00ffcc; color: #000; }
+    #go-btn:hover { background: #00e6b8; }
+
+    .error-msg { color: #ff4b4b; font-size: 14px; text-align: center; margin-top: 10px; min-height: 20px; }
+
+    /* --- GLOBE MARKER CSS (Unchanged) --- */
     .airport-marker {
       display: flex;
       flex-direction: column;
       align-items: center;
-      transform: scale(0); /* Start invisible */
-      animation: dropIn 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards; /* Bouncy drop */
+      transform: scale(0);
+      animation: dropIn 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
     }
-
     .marker-label {
-      background: rgba(255, 255, 255, 0.9);
-      color: #000;
-      padding: 4px 8px;
-      border-radius: 4px;
-      font-weight: bold;
-      font-size: 14px;
-      margin-bottom: 5px;
+      background: rgba(255, 255, 255, 0.9); color: #000; padding: 4px 8px;
+      border-radius: 4px; font-weight: bold; font-size: 14px; margin-bottom: 5px;
       box-shadow: 0 2px 10px rgba(0,0,0,0.5);
     }
-
     .marker-dot {
-      width: 12px;
-      height: 12px;
-      background: #00ffcc; /* Cool neon cyan */
-      border-radius: 50%;
-      box-shadow: 0 0 15px #00ffcc;
-      position: relative; /* Required to position the pulsing ring */
+      width: 12px; height: 12px; background: #00ffcc; border-radius: 50%;
+      box-shadow: 0 0 15px #00ffcc; position: relative;
     }
-
-    /* The Pulsating Radar Ring */
     .marker-dot::after {
-      content: '';
-      position: absolute;
-      top: 50%;
-      left: 50%;
-      width: 100%;
-      height: 100%;
-      background: rgba(0, 255, 204, 0.6); /* Semi-transparent cyan */
-      border-radius: 50%;
-      transform: translate(-50%, -50%);
-      /* Infinite pulsing animation */
+      content: ''; position: absolute; top: 50%; left: 50%; width: 100%; height: 100%;
+      background: rgba(0, 255, 204, 0.6); border-radius: 50%; transform: translate(-50%, -50%);
       animation: pulseRing 1.5s cubic-bezier(0.215, 0.61, 0.355, 1) infinite;
     }
-
-    /* Keyframes for the drop-in bounce */
-    @keyframes dropIn {
-      0% { transform: translateY(-30px) scale(0); opacity: 0; }
-      100% { transform: translateY(0) scale(1); opacity: 1; }
-    }
-
-    /* Keyframes for the continuous pulse */
-    @keyframes pulseRing {
-      0% { transform: translate(-50%, -50%) scale(1); opacity: 1; }
-      100% { transform: translate(-50%, -50%) scale(3.5); opacity: 0; }
-    }
+    @keyframes dropIn { 0% { transform: translateY(-30px) scale(0); opacity: 0; } 100% { transform: translateY(0) scale(1); opacity: 1; } }
+    @keyframes pulseRing { 0% { transform: translate(-50%, -50%) scale(1); opacity: 1; } 100% { transform: translate(-50%, -50%) scale(3.5); opacity: 0; } }
   </style>
   <script src="https://unpkg.com/three"></script>
   <script src="https://unpkg.com/globe.gl"></script>
 </head>
 <body>
 
+  <div id="ui-panel">
+    <h2>Plot Your Route</h2>
+    <div class="input-group" id="inputs-container">
+      <input type="text" class="airport-input" placeholder="Start (e.g. JFK)" value="SFO">
+      <input type="text" class="airport-input" placeholder="Destination (e.g. SYD)" value="SYD">
+    </div>
+    <div class="btn-row">
+      <button id="add-btn">+ Add Stop</button>
+      <button id="go-btn">Generate</button>
+    </div>
+    <div class="error-msg" id="error-msg"></div>
+  </div>
+
   <div id="globeViz"></div>
 
   <script>
-    const airports = [
-      { lat: 40.6413, lng: -73.7781, name: 'JFK' },
-      { lat: 51.4700, lng: -0.4543, name: 'LHR' },
-      { lat: 25.2532, lng: 55.3657, name: 'DXB' }
-    ];
+    // --- Mock Database for Testing ---
+    const airportDB = {
+      'JFK': { lat: 40.6413, lng: -73.7781, name: 'JFK' },
+      'LHR': { lat: 51.4700, lng: -0.4543, name: 'LHR' },
+      'DXB': { lat: 25.2532, lng: 55.3657, name: 'DXB' },
+      'SFO': { lat: 37.6188, lng: -122.3758, name: 'SFO' },
+      'SYD': { lat: -33.9399, lng: 151.1753, name: 'SYD' },
+      'HND': { lat: 35.5494, lng: 139.7798, name: 'HND' }
+    };
 
     const sleep = ms => new Promise(r => setTimeout(r, ms));
 
-    // Initialize blank globe
+    // --- Initialize Globe (Background Mode) ---
     const world = Globe()
       (document.getElementById('globeViz'))
       .globeImageUrl('https://unpkg.com/three-globe/example/img/earth-dark.jpg')
       .bumpImageUrl('https://unpkg.com/three-globe/example/img/earth-topology.png')
       .htmlElement(d => {
         const el = document.createElement('div');
-        el.innerHTML = `
-          <div class="airport-marker">
-            <div class="marker-label">${d.name}</div>
-            <div class="marker-dot"></div>
-          </div>`;
+        el.innerHTML = `<div class="airport-marker"><div class="marker-label">${d.name}</div><div class="marker-dot"></div></div>`;
         return el;
       })
       .arcColor(() => '#00ffcc')
@@ -100,68 +153,108 @@
       .arcDashAnimateTime(1500)
       .arcStroke(1);
 
+    // Initial background state: Zoomed out, slowly rotating
+    world.pointOfView({ lat: 20, lng: 0, altitude: 2.5 }, 0);
+    world.controls().autoRotate = true;
+    world.controls().autoRotateSpeed = 0.5;
     world.controls().enableZoom = false;
-    world.controls().enableRotate = false;
 
-    // FIX: Set the camera's starting position instantly (0ms) right as the globe is created.
-    // This completely bypasses the default "Null Island" view.
-    world.pointOfView({ lat: 20, lng: 100, altitude: 5 }, 0);
+    // --- UI Logic ---
+    document.getElementById('add-btn').addEventListener('click', () => {
+      const container = document.getElementById('inputs-container');
+      const input = document.createElement('input');
+      input.type = 'text';
+      input.className = 'airport-input';
+      input.placeholder = 'Next Stop (e.g. HND)';
+      container.appendChild(input);
+    });
 
-    // --- THE CINEMATIC SEQUENCE ---
-    async function playSequence() {
+    document.getElementById('go-btn').addEventListener('click', () => {
+      const inputs = document.querySelectorAll('.airport-input');
+      const routeAirports = [];
+      const errorMsg = document.getElementById('error-msg');
+      errorMsg.innerText = '';
+
+      // Validate inputs against our mock DB
+      for (let input of inputs) {
+        const code = input.value.trim().toUpperCase();
+        if (!code) continue; // Skip empty fields
+        if (!airportDB[code]) {
+          errorMsg.innerText = `Airport code '${code}' not found in test DB. Try: JFK, LHR, DXB, SFO, SYD, HND.`;
+          return;
+        }
+        routeAirports.push(airportDB[code]);
+      }
+
+      if (routeAirports.length < 2) {
+        errorMsg.innerText = 'Please enter at least a start and destination.';
+        return;
+      }
+
+      // Hide UI and start sequence
+      const uiPanel = document.getElementById('ui-panel');
+      uiPanel.style.transform = 'translate(-50%, -60%) scale(0.9)';
+      uiPanel.style.opacity = '0';
+      setTimeout(() => uiPanel.style.display = 'none', 500);
+
+      playSequence(routeAirports);
+    });
+
+    // --- THE DYNAMIC CINEMATIC SEQUENCE ---
+    async function playSequence(route) {
+      // Stop background rotation
+      world.controls().autoRotate = false;
+      
       const activeAirports = [];
       const activePaths = [];
 
-      // Brief pause to let the black screen transition smoothly into the loaded textures
-      await sleep(500); 
+      // 1. Dynamic Setup: Position camera far away from the FIRST airport
+      const startAir = route[0];
+      const setupLng = startAir.lng + 120; // Offset by 120 degrees
+      const setupLat = -startAir.lat;      // Opposite hemisphere
+      
+      // Instantly move to this hidden setup position
+      world.pointOfView({ lat: setupLat, lng: setupLng, altitude: 4 }, 0);
+      await sleep(100); 
 
-      // 1. The Swoop: Circle the earth and zoom into JFK over 3 seconds
-      world.pointOfView({ lat: airports[0].lat, lng: airports[0].lng, altitude: 1.5 }, 3000);
+      // 2. The Dynamic Swoop: Fly from setup position to the first airport
+      world.pointOfView({ lat: startAir.lat, lng: startAir.lng, altitude: 1.5 }, 3000);
       await sleep(3000); 
 
-      // 2. Drop the starting pin
-      activeAirports.push(airports[0]);
+      // 3. Drop first pin
+      activeAirports.push(startAir);
       world.htmlElementsData([...activeAirports]);
       await sleep(1000); 
 
-      // 3. Draw first path & fly camera to Connection (LHR)
-      activePaths.push({
-        startLat: airports[0].lat, startLng: airports[0].lng,
-        endLat: airports[1].lat, endLng: airports[1].lng
-      });
-      world.arcsData([...activePaths]);
-      
-      world.pointOfView({ lat: airports[1].lat, lng: airports[1].lng, altitude: 1.5 }, 2500);
-      await sleep(2500);
+      // 4. Dynamic Loop: Draw paths and fly to each subsequent airport
+      for (let i = 0; i < route.length - 1; i++) {
+        const currentAir = route[i];
+        const nextAir = route[i+1];
 
-      // 4. Drop Connection pin
-      activeAirports.push(airports[1]);
-      world.htmlElementsData([...activeAirports]);
-      await sleep(1000);
+        // Draw path
+        activePaths.push({
+          startLat: currentAir.lat, startLng: currentAir.lng,
+          endLat: nextAir.lat, endLng: nextAir.lng
+        });
+        world.arcsData([...activePaths]);
+        
+        // Fly camera
+        world.pointOfView({ lat: nextAir.lat, lng: nextAir.lng, altitude: 1.5 }, 2500);
+        await sleep(2500);
 
-      // 5. Draw second path & fly camera to Destination (DXB)
-      activePaths.push({
-        startLat: airports[1].lat, startLng: airports[1].lng,
-        endLat: airports[2].lat, endLng: airports[2].lng
-      });
-      world.arcsData([...activePaths]);
+        // Drop pin
+        activeAirports.push(nextAir);
+        world.htmlElementsData([...activeAirports]);
+        await sleep(1500);
+      }
 
-      world.pointOfView({ lat: airports[2].lat, lng: airports[2].lng, altitude: 1.5 }, 2500);
-      await sleep(2500);
-
-      // 6. Drop Destination pin
-      activeAirports.push(airports[2]);
-      world.htmlElementsData([...activeAirports]);
-      await sleep(1500);
-
-      // 7. Grand Finale: Zoom out slightly and auto-rotate
+      // 5. Grand Finale: Zoom out and rotate around the final destination
+      const finalAir = route[route.length - 1];
       world.controls().enableRotate = true; 
-      world.pointOfView({ lat: airports[1].lat, lng: airports[1].lng, altitude: 2.5 }, 3000);
+      world.pointOfView({ lat: finalAir.lat, lng: finalAir.lng, altitude: 2.5 }, 3000);
       world.controls().autoRotate = true;
       world.controls().autoRotateSpeed = 1.0;
     }
-
-    setTimeout(playSequence, 500); 
 
   </script>
 </body>
