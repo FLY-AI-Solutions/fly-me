@@ -55,10 +55,8 @@
       { lat: 25.2532, lng: 55.3657, name: 'DXB' }
     ];
 
-    // Helper function to create pauses in our "script"
     const sleep = ms => new Promise(r => setTimeout(r, ms));
 
-    // Initialize blank globe
     const world = Globe()
       (document.getElementById('globeViz'))
       .globeImageUrl('https://unpkg.com/three-globe/example/img/earth-dark.jpg')
@@ -72,13 +70,12 @@
           </div>`;
         return el;
       })
-      .arcColor(() => '#00ffcc') // Match arc color to the neon cyan dot
+      .arcColor(() => '#00ffcc')
       .arcDashLength(0.4)
       .arcDashGap(0.2)
       .arcDashAnimateTime(1500)
       .arcStroke(1);
 
-    // Disable interactions so the sequence plays uninterrupted
     world.controls().enableZoom = false;
     world.controls().enableRotate = false;
 
@@ -87,18 +84,20 @@
       const activeAirports = [];
       const activePaths = [];
 
-      // 1. Setup: Point camera at the starting airport (JFK) from high up, then zoom in
-      world.pointOfView({ lat: airports[0].lat, lng: airports[0].lng, altitude: 4 }, 0);
-      await sleep(500); 
-      world.pointOfView({ lat: airports[0].lat, lng: airports[0].lng, altitude: 1.5 }, 2000);
-      await sleep(2000);
+      // 1. Setup: Start the camera far away (e.g., over Asia) and very high up
+      world.pointOfView({ lat: 20, lng: 100, altitude: 5 }, 0);
+      await sleep(500); // Brief pause to let the globe textures load fully
 
-      // 2. Drop the starting pin
+      // 2. The Swoop: Circle the earth and zoom into JFK simultaneously over 3 seconds
+      world.pointOfView({ lat: airports[0].lat, lng: airports[0].lng, altitude: 1.5 }, 3000);
+      await sleep(3000); // Wait for the 3-second swoop to finish completely
+
+      // 3. Drop the starting pin
       activeAirports.push(airports[0]);
       world.htmlElementsData([...activeAirports]);
-      await sleep(1000); // Wait for the drop animation
+      await sleep(1000); 
 
-      // 3. Draw first path & fly camera to Connection (LHR)
+      // 4. Draw first path & fly camera to Connection (LHR)
       activePaths.push({
         startLat: airports[0].lat, startLng: airports[0].lng,
         endLat: airports[1].lat, endLng: airports[1].lng
@@ -108,12 +107,12 @@
       world.pointOfView({ lat: airports[1].lat, lng: airports[1].lng, altitude: 1.5 }, 2500);
       await sleep(2500);
 
-      // 4. Drop Connection pin
+      // 5. Drop Connection pin
       activeAirports.push(airports[1]);
       world.htmlElementsData([...activeAirports]);
       await sleep(1000);
 
-      // 5. Draw second path & fly camera to Destination (DXB)
+      // 6. Draw second path & fly camera to Destination (DXB)
       activePaths.push({
         startLat: airports[1].lat, startLng: airports[1].lng,
         endLat: airports[2].lat, endLng: airports[2].lng
@@ -123,20 +122,19 @@
       world.pointOfView({ lat: airports[2].lat, lng: airports[2].lng, altitude: 1.5 }, 2500);
       await sleep(2500);
 
-      // 6. Drop Destination pin
+      // 7. Drop Destination pin
       activeAirports.push(airports[2]);
       world.htmlElementsData([...activeAirports]);
       await sleep(1500);
 
-      // 7. Grand Finale: Zoom out slightly and start auto-rotating to show the full journey
-      world.controls().enableRotate = true; // Give user control back
-      world.pointOfView({ lat: airports[1].lat, lng: airports[1].lng, altitude: 2.2 }, 3000);
+      // 8. Grand Finale: Zoom out slightly and auto-rotate
+      world.controls().enableRotate = true; 
+      world.pointOfView({ lat: airports[1].lat, lng: airports[1].lng, altitude: 2.5 }, 3000);
       world.controls().autoRotate = true;
-      world.controls().autoRotateSpeed = 1.5;
+      world.controls().autoRotateSpeed = 1.0;
     }
 
-    // Start the movie once the globe data loads
-    setTimeout(playSequence, 1000); 
+    setTimeout(playSequence, 500); 
 
   </script>
 </body>
