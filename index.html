@@ -213,7 +213,7 @@
 
   <div id="globeViz"></div>
 
-  <script>
+<script>
     const airportDB = {
       'JFK': { lat: 40.6413, lng: -73.7781, name: 'JFK' },
       'LHR': { lat: 51.4700, lng: -0.4543, name: 'LHR' },
@@ -229,17 +229,27 @@
 
     const sleep = ms => new Promise(r => setTimeout(r, ms));
 
-    function getDynamicAltitude(lat1, lon1, lat2, lon2) {
+    // Core Math: Calculate real-world distance between coordinates
+    function getDistance(lat1, lon1, lat2, lon2) {
       const R = 6371; 
       const dLat = (lat2 - lat1) * Math.PI / 180;
       const dLon = (lon2 - lon1) * Math.PI / 180;
       const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
                 Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
                 Math.sin(dLon/2) * Math.sin(dLon/2);
-      const distKm = R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
-      
+      return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+    }
+
+    // Dynamic Altitude based on distance
+    function getDynamicAltitude(distKm) {
       let alt = (distKm / 10000) * 1.5;
       return Math.max(0.3, Math.min(1.5, alt + 0.2)); 
+    }
+
+    // NEW: Dynamic Line Thickness based on distance
+    function getDynamicStroke(distKm) {
+      let stroke = (distKm / 3000) * 1.0;
+      return Math.max(0.2, Math.min(1.0, stroke)); // Min width 0.2, Max width 1.0
     }
 
     const world = Globe()
@@ -255,7 +265,7 @@
       .arcDashLength(0.4)
       .arcDashGap(0.2)
       .arcDashAnimateTime(1800) 
-      .arcStroke(1);
+      .arcStroke(d => d.stroke || 1); // Apply the dynamic stroke width here!
 
     world.pointOfView({ lat: 20, lng: 0, altitude: 2.5 }, 0);
     world.controls().autoRotate = true;
@@ -307,19 +317,15 @@
       toggleBtn.innerText = '✏️ Edit Route';
       activeSequenceId++;
       
-      // We no longer wipe the globe here, the loop inside playSequence handles it
       playSequence(routeAirports, activeSequenceId);
     });
 
-    // --- THE DYNAMIC CINEMATIC SEQUENCE (Now Looping!) ---
+    // --- THE DYNAMIC CINEMATIC SEQUENCE ---
     async function playSequence(route, seqId) {
       const isAlive = () => seqId === activeSequenceId;
 
-      // Wrap the entire sequence in an infinite loop
       while (isAlive()) {
         world.controls().autoRotate = false;
-        
-        // Wipe existing lines and markers at the start of every loop iteration
         world.arcsData([]);
         world.htmlElementsData([]);
         
@@ -331,11 +337,11 @@
         const setupLng = startAir.lng + 120; 
         const setupLat = -startAir.lat;      
         
-        // Changed duration to 1500ms so it smoothly flies to the start position when looping
         world.pointOfView({ lat: setupLat, lng: setupLng, altitude: 4 }, 1500);
         await sleep(1500); 
 
-        const initialAlt = getDynamicAltitude(startAir.lat, startAir.lng, route[1].lat, route[1].lng);
+        const firstDist = getDistance(startAir.lat, startAir.lng, route[1].lat, route[1].lng);
+        const initialAlt = getDynamicAltitude(firstDist);
 
         if (!isAlive()) return;
         world.pointOfView({ lat: startAir.lat, lng: startAir.lng, altitude: initialAlt }, 3000);
@@ -351,7 +357,21 @@
           const currentAir = route[i];
           const nextAir = route[i+1];
 
-          const flightAlt = getDynamicAltitude(currentAir.lat, currentAir.lng, nextAir.lat, nextAir.lng);
+          const distKm = getDistance(currentAir.lat, currentAir.lng, nextAir.lat, nextAir.lng);
+          const flightAlt = getDynamicAltitude(distKm);
+          const flightStroke = getDynamicStroke(distKm);
+
+          // NEW: The "Pull-Back Maneuver"
+          if (i > 0) {
+            const prevDist = getDistance(route[i-1].lat, route[i-1].lng, currentAir.lat, currentAir.lng);
+            const prevAlt = getDynamicAltitude(prevDist);
+            
+            // If the next flight needs us to zoom out significantly, blast up into space BEFORE panning
+            if (flightAlt > prevAlt + 0.3) {
+              world.pointOfView({ lat: currentAir.lat, lng: currentAir.lng, altitude: flightAlt }, 1500);
+              await sleep(1500); // Give the camera time to rise
+            }
+          }
 
           let midLng = (currentAir.lng + nextAir.lng) / 2;
           if (Math.abs(currentAir.lng - nextAir.lng) > 180) midLng += (midLng < 0) ? 180 : -180; 
@@ -364,7 +384,8 @@
           
           activePaths.push({
             startLat: currentAir.lat, startLng: currentAir.lng,
-            endLat: nextAir.lat, endLng: nextAir.lng
+            endLat: nextAir.lat, endLng: nextAir.lng,
+            stroke: flightStroke // NEW: Apply the custom line thickness to this specific arc
           });
           world.arcsData([...activePaths]);
           
@@ -379,16 +400,13 @@
 
         if (!isAlive()) return;
         
-        // --- FIXED GRAND FINALE ---
         const finalAir = route[route.length - 1];
         world.controls().enableRotate = true; 
         
-        // Hardcode altitude back to 2.5 to always reveal the whole globe at the end
         world.pointOfView({ lat: finalAir.lat, lng: finalAir.lng, altitude: 2.5 }, 3000);
         world.controls().autoRotate = true;
         world.controls().autoRotateSpeed = 0.8;
 
-        // Pause the loop for 6 seconds to let the user admire the completed route
         await sleep(6000);
       }
     }
