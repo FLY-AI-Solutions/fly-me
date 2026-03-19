@@ -5,95 +5,189 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Travel Route Cinematic</title>
   <style>
-    body { margin: 0; padding: 0; overflow: hidden; background-color: #000; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
-    #globeViz { width: 100vw; height: 100vh; position: absolute; top: 0; left: 0; z-index: 1; }
+    body { 
+      margin: 0; 
+      padding: 0; 
+      overflow: hidden; 
+      background-color: #000; 
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
+    }
+    
+    #globeViz { 
+      width: 100vw; 
+      height: 100vh; 
+      position: absolute; 
+      top: 0; 
+      left: 0; 
+      z-index: 1; 
+    }
     
     /* --- UI WRAPPER --- */
-    #ui-container {
-      position: absolute;
-      top: 20px;
-      right: 20px;
-      z-index: 10;
-      display: flex;
-      flex-direction: column;
-      align-items: flex-end;
-      gap: 15px;
+    #ui-container { 
+      position: absolute; 
+      top: 20px; 
+      right: 0; /* Flush to the right edge */
+      z-index: 10; 
+      display: flex; 
+      flex-direction: column; 
+      align-items: flex-end; 
+      gap: 15px; 
     }
 
     /* Floating Edit Button */
-    #toggle-ui-btn {
-      background: rgba(20, 20, 20, 0.5);
-      backdrop-filter: blur(10px);
-      -webkit-backdrop-filter: blur(10px);
-      border: 1px solid rgba(255, 255, 255, 0.2);
-      color: white;
-      padding: 10px 20px;
-      border-radius: 30px;
-      font-weight: bold;
-      cursor: pointer;
-      box-shadow: 0 4px 15px rgba(0, 0, 0, 0.5);
-      transition: background 0.2s, transform 0.2s;
+    #toggle-ui-btn { 
+      margin-right: 20px; /* Keep the button slightly off the edge */
+      background: rgba(20, 20, 20, 0.5); 
+      backdrop-filter: blur(10px); 
+      -webkit-backdrop-filter: blur(10px); 
+      border: 1px solid rgba(255, 255, 255, 0.2); 
+      color: white; 
+      padding: 10px 20px; 
+      border-radius: 30px; 
+      font-weight: bold; 
+      cursor: pointer; 
+      box-shadow: 0 4px 15px rgba(0, 0, 0, 0.5); 
+      transition: background 0.2s, transform 0.2s; 
     }
-    #toggle-ui-btn:hover { background: rgba(255, 255, 255, 0.1); transform: scale(1.05); }
-
-    /* Frosted Glass Panel */
-    #ui-panel {
-      background: rgba(20, 20, 20, 0.4);
-      backdrop-filter: blur(15px);
-      -webkit-backdrop-filter: blur(15px);
-      border: 1px solid rgba(255, 255, 255, 0.15);
-      border-radius: 20px;
-      padding: 25px;
-      width: 280px;
-      color: white;
-      box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.5);
-      
-      /* Sliding Animation Setup */
-      transform-origin: right top;
-      transition: transform 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275), opacity 0.4s ease;
+    
+    #toggle-ui-btn:hover { 
+      background: rgba(255, 255, 255, 0.1); 
+      transform: scale(1.05); 
     }
 
-    /* Class to hide the panel smoothly off-screen */
-    .collapsed {
-      transform: translateX(120%) scale(0.95);
-      opacity: 0;
-      pointer-events: none;
+    /* Frosted Glass Panel - Attached to Right Edge */
+    #ui-panel { 
+      background: rgba(20, 20, 20, 0.4); 
+      backdrop-filter: blur(15px); 
+      -webkit-backdrop-filter: blur(15px); 
+      border: 1px solid rgba(255, 255, 255, 0.15); 
+      border-right: none; /* Flat against the screen edge */
+      border-radius: 20px 0 0 20px; /* Rounded only on the left */
+      padding: 25px; 
+      width: 280px; 
+      color: white; 
+      box-shadow: -8px 8px 32px 0 rgba(0, 0, 0, 0.5); /* Shadow pulled to the left */
+      transform-origin: right center; 
+      transition: transform 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275), opacity 0.4s ease; 
+    }
+    
+    /* Hidden state slides fully off-screen to the right */
+    .collapsed { 
+      transform: translateX(110%); 
+      opacity: 0; 
+      pointer-events: none; 
     }
 
     /* --- Form Elements --- */
-    #ui-panel h2 { margin-top: 0; font-weight: 600; letter-spacing: 1px; font-size: 20px; margin-bottom: 20px; }
-    .input-group { display: flex; flex-direction: column; gap: 10px; margin-bottom: 20px; }
-    
-    input {
-      background: rgba(255, 255, 255, 0.1);
-      border: 1px solid rgba(255, 255, 255, 0.3);
-      padding: 12px;
-      border-radius: 8px;
-      color: white;
-      font-size: 16px;
-      outline: none;
-      text-transform: uppercase;
-      transition: border-color 0.2s;
+    #ui-panel h2 { 
+      margin-top: 0; 
+      font-weight: 600; 
+      letter-spacing: 1px; 
+      font-size: 20px; 
+      margin-bottom: 20px; 
     }
-    input::placeholder { color: rgba(255, 255, 255, 0.5); text-transform: none; }
-    input:focus { border-color: #00ffcc; }
-
-    .btn-row { display: flex; gap: 10px; }
-    button.action-btn { flex: 1; padding: 12px; border: none; border-radius: 8px; font-size: 15px; font-weight: bold; cursor: pointer; transition: background 0.2s; }
+    
+    .input-group { 
+      display: flex; 
+      flex-direction: column; 
+      gap: 10px; 
+      margin-bottom: 20px; 
+    }
+    
+    input { 
+      background: rgba(255, 255, 255, 0.1); 
+      border: 1px solid rgba(255, 255, 255, 0.3); 
+      padding: 12px; 
+      border-radius: 8px; 
+      color: white; 
+      font-size: 16px; 
+      outline: none; 
+      text-transform: uppercase; 
+      transition: border-color 0.2s; 
+    }
+    
+    input::placeholder { 
+      color: rgba(255, 255, 255, 0.5); 
+      text-transform: none; 
+    }
+    
+    input:focus { 
+      border-color: #00ffcc; 
+    }
+    
+    .btn-row { 
+      display: flex; 
+      gap: 10px; 
+    }
+    
+    button.action-btn { 
+      flex: 1; 
+      padding: 12px; 
+      border: none; 
+      border-radius: 8px; 
+      font-size: 15px; 
+      font-weight: bold; 
+      cursor: pointer; 
+      transition: background 0.2s; 
+    }
+    
     #add-btn { background: rgba(255, 255, 255, 0.2); color: white; }
     #add-btn:hover { background: rgba(255, 255, 255, 0.3); }
     #go-btn { background: #00ffcc; color: #000; }
     #go-btn:hover { background: #00e6b8; }
-    
     .error-msg { color: #ff4b4b; font-size: 13px; text-align: center; margin-top: 10px; min-height: 18px; }
 
     /* --- GLOBE MARKER CSS --- */
-    .airport-marker { display: flex; flex-direction: column; align-items: center; transform: scale(0); animation: dropIn 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards; }
-    .marker-label { background: rgba(255, 255, 255, 0.9); color: #000; padding: 4px 8px; border-radius: 4px; font-weight: bold; font-size: 14px; margin-bottom: 5px; box-shadow: 0 2px 10px rgba(0,0,0,0.5); }
-    .marker-dot { width: 12px; height: 12px; background: #00ffcc; border-radius: 50%; box-shadow: 0 0 15px #00ffcc; position: relative; }
-    .marker-dot::after { content: ''; position: absolute; top: 50%; left: 50%; width: 100%; height: 100%; background: rgba(0, 255, 204, 0.6); border-radius: 50%; transform: translate(-50%, -50%); animation: pulseRing 1.5s cubic-bezier(0.215, 0.61, 0.355, 1) infinite; }
-    @keyframes dropIn { 0% { transform: translateY(-30px) scale(0); opacity: 0; } 100% { transform: translateY(0) scale(1); opacity: 1; } }
-    @keyframes pulseRing { 0% { transform: translate(-50%, -50%) scale(1); opacity: 1; } 100% { transform: translate(-50%, -50%) scale(3.5); opacity: 0; } }
+    .airport-marker { 
+      display: flex; 
+      flex-direction: column; 
+      align-items: center; 
+      transform: scale(0); 
+      animation: dropIn 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards; 
+    }
+    
+    .marker-label { 
+      background: rgba(255, 255, 255, 0.9); 
+      color: #000; 
+      padding: 4px 8px; 
+      border-radius: 4px; 
+      font-weight: bold; 
+      font-size: 14px; 
+      margin-bottom: 5px; 
+      box-shadow: 0 2px 10px rgba(0,0,0,0.5); 
+    }
+    
+    .marker-dot { 
+      width: 12px; 
+      height: 12px; 
+      background: #00ffcc; 
+      border-radius: 50%; 
+      box-shadow: 0 0 15px #00ffcc; 
+      position: relative; 
+    }
+    
+    .marker-dot::after { 
+      content: ''; 
+      position: absolute; 
+      top: 50%; 
+      left: 50%; 
+      width: 100%; 
+      height: 100%; 
+      background: rgba(0, 255, 204, 0.6); 
+      border-radius: 50%; 
+      transform: translate(-50%, -50%); 
+      animation: pulseRing 1.5s cubic-bezier(0.215, 0.61, 0.355, 1) infinite; 
+    }
+    
+    @keyframes dropIn { 
+      0% { transform: translateY(-30px) scale(0); opacity: 0; } 
+      100% { transform: translateY(0) scale(1); opacity: 1; } 
+    }
+    
+    @keyframes pulseRing { 
+      0% { transform: translate(-50%, -50%) scale(1); opacity: 1; } 
+      100% { transform: translate(-50%, -50%) scale(3.5); opacity: 0; } 
+    }
   </style>
   <script src="https://unpkg.com/three"></script>
   <script src="https://unpkg.com/globe.gl"></script>
@@ -103,11 +197,11 @@
   <div id="ui-container">
     <button id="toggle-ui-btn">✏️ Edit Route</button>
     
-    <div id="ui-panel">
+    <div id="ui-panel" class="collapsed">
       <h2>Plot Your Route</h2>
       <div class="input-group" id="inputs-container">
-        <input type="text" class="airport-input" placeholder="Start (e.g. JFK)" value="SFO">
-        <input type="text" class="airport-input" placeholder="Destination (e.g. SYD)" value="SYD">
+        <input type="text" class="airport-input" placeholder="Start (e.g. ROC)" value="ROC">
+        <input type="text" class="airport-input" placeholder="Destination (e.g. BWI)" value="BWI">
       </div>
       <div class="btn-row">
         <button class="action-btn" id="add-btn">+ Add Stop</button>
@@ -121,22 +215,33 @@
 
   <script>
     const airportDB = {
-      // Existing test airports
       'JFK': { lat: 40.6413, lng: -73.7781, name: 'JFK' },
       'LHR': { lat: 51.4700, lng: -0.4543, name: 'LHR' },
       'DXB': { lat: 25.2532, lng: 55.3657, name: 'DXB' },
       'SFO': { lat: 37.6188, lng: -122.3758, name: 'SFO' },
       'SYD': { lat: -33.9399, lng: 151.1753, name: 'SYD' },
       'HND': { lat: 35.5494, lng: 139.7798, name: 'HND' },
-      
-      // Newly added airports
-      'ROC': { lat: 43.1189, lng: -77.6724, name: 'ROC' }, // Rochester
-      'BWI': { lat: 39.1774, lng: -76.6684, name: 'BWI' }, // Baltimore
-      'SAN': { lat: 32.7338, lng: -117.1933, name: 'SAN' }, // San Diego
-      'TUS': { lat: 32.1161, lng: -110.9410, name: 'TUS' }  // Tucson
+      'ROC': { lat: 43.1189, lng: -77.6724, name: 'ROC' },
+      'BWI': { lat: 39.1774, lng: -76.6684, name: 'BWI' },
+      'SAN': { lat: 32.7338, lng: -117.1933, name: 'SAN' },
+      'TUS': { lat: 32.1161, lng: -110.9410, name: 'TUS' }
     };
 
     const sleep = ms => new Promise(r => setTimeout(r, ms));
+
+    // Dynamic camera altitude calculator
+    function getDynamicAltitude(lat1, lon1, lat2, lon2) {
+      const R = 6371; 
+      const dLat = (lat2 - lat1) * Math.PI / 180;
+      const dLon = (lon2 - lon1) * Math.PI / 180;
+      const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
+                Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+                Math.sin(dLon/2) * Math.sin(dLon/2);
+      const distKm = R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+      
+      let alt = (distKm / 10000) * 1.5;
+      return Math.max(0.3, Math.min(1.5, alt + 0.2)); 
+    }
 
     // Initialize Globe
     const world = Globe()
@@ -151,7 +256,7 @@
       .arcColor(() => '#00ffcc')
       .arcDashLength(0.4)
       .arcDashGap(0.2)
-      .arcDashAnimateTime(1500)
+      .arcDashAnimateTime(1800) 
       .arcStroke(1);
 
     world.pointOfView({ lat: 20, lng: 0, altitude: 2.5 }, 0);
@@ -163,26 +268,22 @@
     const uiPanel = document.getElementById('ui-panel');
     const toggleBtn = document.getElementById('toggle-ui-btn');
 
-    // Toggle Panel Open/Close
     toggleBtn.addEventListener('click', () => {
       uiPanel.classList.toggle('collapsed');
       toggleBtn.innerText = uiPanel.classList.contains('collapsed') ? '✏️ Edit Route' : '✖ Close';
     });
 
-    // Add Stop Button
     document.getElementById('add-btn').addEventListener('click', () => {
       const container = document.getElementById('inputs-container');
       const input = document.createElement('input');
       input.type = 'text';
       input.className = 'airport-input';
-      input.placeholder = 'Next Stop (e.g. HND)';
+      input.placeholder = 'Next Stop';
       container.appendChild(input);
     });
 
-    // Global variable to track active animations and prevent overlapping
     let activeSequenceId = 0;
 
-    // Generate Button
     document.getElementById('go-btn').addEventListener('click', () => {
       const inputs = document.querySelectorAll('.airport-input');
       const routeAirports = [];
@@ -193,35 +294,27 @@
         const code = input.value.trim().toUpperCase();
         if (!code) continue; 
         if (!airportDB[code]) {
-          errorMsg.innerText = `Code '${code}' not in test DB. Try: JFK, LHR, DXB, SFO, SYD, HND.`;
+          errorMsg.innerText = `Code '${code}' not found.`;
           return;
         }
         routeAirports.push(airportDB[code]);
       }
 
       if (routeAirports.length < 2) {
-        errorMsg.innerText = 'Please enter at least a start and destination.';
+        errorMsg.innerText = 'Enter at least a start and destination.';
         return;
       }
 
-      // Close the panel
       uiPanel.classList.add('collapsed');
       toggleBtn.innerText = '✏️ Edit Route';
-
-      // Increment sequence ID to "kill" any currently running animation loop
       activeSequenceId++;
-      
-      // Instantly wipe existing lines and pins from the globe
       world.arcsData([]);
       world.htmlElementsData([]);
-
-      // Start fresh sequence
       playSequence(routeAirports, activeSequenceId);
     });
 
     // --- THE DYNAMIC CINEMATIC SEQUENCE ---
     async function playSequence(route, seqId) {
-      // Helper function: if the user clicked Generate again, seqId won't match activeSequenceId, so we abort.
       const isAlive = () => seqId === activeSequenceId;
 
       world.controls().autoRotate = false;
@@ -236,8 +329,10 @@
       world.pointOfView({ lat: setupLat, lng: setupLng, altitude: 4 }, 0);
       await sleep(100); 
 
+      const initialAlt = getDynamicAltitude(startAir.lat, startAir.lng, route[1].lat, route[1].lng);
+
       if (!isAlive()) return;
-      world.pointOfView({ lat: startAir.lat, lng: startAir.lng, altitude: 1.5 }, 3000);
+      world.pointOfView({ lat: startAir.lat, lng: startAir.lng, altitude: initialAlt }, 3000);
       await sleep(3000); 
 
       if (!isAlive()) return;
@@ -250,14 +345,25 @@
         const currentAir = route[i];
         const nextAir = route[i+1];
 
+        const flightAlt = getDynamicAltitude(currentAir.lat, currentAir.lng, nextAir.lat, nextAir.lng);
+
+        let midLng = (currentAir.lng + nextAir.lng) / 2;
+        if (Math.abs(currentAir.lng - nextAir.lng) > 180) midLng += (midLng < 0) ? 180 : -180; 
+        const midLat = (currentAir.lat + nextAir.lat) / 2;
+
+        world.pointOfView({ lat: midLat, lng: midLng, altitude: flightAlt }, 1200);
+        await sleep(1200);
+
+        if (!isAlive()) return;
+        
         activePaths.push({
           startLat: currentAir.lat, startLng: currentAir.lng,
           endLat: nextAir.lat, endLng: nextAir.lng
         });
         world.arcsData([...activePaths]);
         
-        world.pointOfView({ lat: nextAir.lat, lng: nextAir.lng, altitude: 1.5 }, 2500);
-        await sleep(2500);
+        world.pointOfView({ lat: nextAir.lat, lng: nextAir.lng, altitude: flightAlt }, 2000);
+        await sleep(2000);
 
         if (!isAlive()) return;
         activeAirports.push(nextAir);
@@ -268,9 +374,10 @@
       if (!isAlive()) return;
       const finalAir = route[route.length - 1];
       world.controls().enableRotate = true; 
-      world.pointOfView({ lat: finalAir.lat, lng: finalAir.lng, altitude: 2.5 }, 3000);
+      const finaleAlt = Math.min(2.5, getDynamicAltitude(route[route.length - 2].lat, route[route.length - 2].lng, finalAir.lat, finalAir.lng) + 0.5);
+      world.pointOfView({ lat: finalAir.lat, lng: finalAir.lng, altitude: finaleAlt }, 3000);
       world.controls().autoRotate = true;
-      world.controls().autoRotateSpeed = 1.0;
+      world.controls().autoRotateSpeed = 0.8;
     }
 
   </script>
